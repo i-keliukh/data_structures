@@ -7,47 +7,60 @@
 
 
 void init();
-void push_back(int value);
-int pop_back();
-int get_value(int index);
+void push_front(int value);
+int pop_front();
+void dump_list(int copy[]);
 
 
 namespace {
 	typedef unsigned int uint;
 	static uint seed;
-	uint mrand(uint num) {
-		seed = ((seed * 1103515245) + 12345) & 0x7FFFFFFF;
-		return seed % num;
+	static uint mrand(uint num)
+	{
+		seed = seed * 1103515245 + 37209;
+		return ((seed >> 8) % num);
+	}
+
+	std::list<int> numbers;
+	int list_copy[1000000];
+
+	bool test_dump() {
+		dump_list(list_copy);
+		int index = 0;
+		for (auto it = numbers.begin(); it != numbers.end(); ++it, ++index) {
+			if (*it != list_copy[index]) return false;
+		}
+		return true;
 	}
 
 	bool test_random()
 	{
 		int iterations;
-		scanf("%d%u", &iterations, &seed);
+		(void)scanf("%d%u", &iterations, &seed);
 		init();
-		std::vector<int> stack;
+		numbers.clear();
 		for (int i = 0; i < iterations; ++i) {
 			int action = mrand(3);
 			switch (action) {
 			case 0:
-				uint value;
-				value = mrand(UINT_MAX);
-				stack.push_back(value);
-				push_back(value);
-				break;
 			case 1:
-				if (stack.empty()) break;
-				if (stack.back() != pop_back()) return false;
-				stack.pop_back();
+				int value;
+				value = mrand(INT_MAX);
+				numbers.push_front(value);
+				push_front(value);
 				break;
-			default:
-				if (stack.empty()) break;
-				int index = mrand(stack.size());
-				if (stack[index] != get_value(index)) return false;
+			case 2:
+				if (numbers.empty()) break;
+				if (pop_front() != numbers.front()) return false;
+				numbers.pop_front();
 				break;
 			}
+
+			if (mrand(iterations/10) == 0) {
+				if (!test_dump()) return false;
+			}
 		}
-		return true;
+		return test_dump();
 	}
 }
 
@@ -55,7 +68,7 @@ int main()
 {
 	setbuf(stdout, NULL);
 	int ntests = 0;
-	scanf("%d", &ntests);
+	(void)scanf("%d", &ntests);
 	for (int t = 1; t <= ntests; ++t) {
 		printf("#%d %d\n", t, test_random() ? 100 : 0);
 	}

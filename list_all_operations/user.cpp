@@ -1,22 +1,79 @@
-#define MAX_SIZE	50000
+#define MAX_SIZE	1100000
 
-int size = 0;
-int array[MAX_SIZE];
+#define PROPER_IMPLEMENTATION
+#ifdef PROPER_IMPLEMENTATION
+struct Node {
+	int value;
+	int next;
+};
 
-void init() {
+Node array[MAX_SIZE];
+unsigned int size;
+
+int first;
+
+void init() 
+{
 	size = 0;
+	first = -1;
 }
 
-void push_back(int value) {
-	array[size] = value;
+void push_front(int value)
+{
+	array[size].value = value;
+	array[size].next = first;
+	first = size;
 	size++;
 }
 
-int pop_back() {
-	size--;
-	return array[size];
+int pop_front()
+{
+	int result = array[first].value;
+	first = array[first].next;
+	return result;
 }
 
-int get_value(int index) {
-	return array[index];
+void dump_list(int copy[])
+{
+	int iterator = first;
+	int index = 0;
+	while (iterator != -1)
+	{
+		copy[index] = array[iterator].value;
+		index++;
+		iterator = array[iterator].next;
+	}
 }
+#else
+
+#include <memory.h>
+
+int array[MAX_SIZE];
+unsigned int size;
+
+
+void init()
+{
+	size = 0;
+}
+
+void push_front(int value)
+{
+	memmove(array + 1, array, size * sizeof(int));
+	array[0] = value;
+	size++;
+}
+
+int pop_front()
+{
+	int result = array[0];
+	memmove(array, array + 1, size * sizeof(int));
+	size--;
+	return result;
+}
+
+void dump_list(int copy[])
+{
+	memcpy(copy, array, size * sizeof(int));
+}
+#endif

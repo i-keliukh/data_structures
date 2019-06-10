@@ -23,15 +23,15 @@ namespace {
 	bool test_random()
 	{
 		int iterations;
-		scanf("%d%u", &iterations, &seed);
+		(void)scanf("%d%u", &iterations, &seed);
 		init();
 		std::vector<int> stack;
 		for (int i = 0; i < iterations; ++i) {
 			int action = mrand(3);
 			switch (action) {
 			case 0:
-				uint value;
-				value = mrand(UINT_MAX);
+				int value;
+				value = mrand(INT_MAX);
 				stack.push_back(value);
 				push_back(value);
 				break;
@@ -42,7 +42,7 @@ namespace {
 				break;
 			default:
 				if (stack.empty()) break;
-				int index = mrand(stack.size());
+				int index = mrand((uint)stack.size());
 				if (stack[index] != get_value(index)) return false;
 				break;
 			}
@@ -55,7 +55,7 @@ int main()
 {
 	setbuf(stdout, NULL);
 	int ntests = 0;
-	scanf("%d", &ntests);
+	(void)scanf("%d", &ntests);
 	for (int t = 1; t <= ntests; ++t) {
 		printf("#%d %d\n", t, test_random() ? 100 : 0);
 	}
