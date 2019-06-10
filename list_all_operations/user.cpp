@@ -11,17 +11,23 @@ Node array[MAX_SIZE];
 unsigned int size;
 
 int first;
+int last;
 
 void init() 
 {
 	size = 0;
 	first = -1;
+	last = -1;
 }
 
 void push_front(int value)
 {
 	array[size].value = value;
 	array[size].next = first;
+	if (first == -1)
+	{
+		last = size;
+	}
 	first = size;
 	size++;
 }
@@ -30,7 +36,27 @@ int pop_front()
 {
 	int result = array[first].value;
 	first = array[first].next;
+	if (first == -1)
+	{
+		last = -1;
+	}
 	return result;
+}
+
+void push_back(int value)
+{
+	array[size].value = value;
+	array[size].next = -1;
+	if (last == -1) 
+	{
+		first = size;
+	}
+	else
+	{
+		array[last].next = size;
+	}
+	last = size;
+	size++;
 }
 
 void dump_list(int copy[])
@@ -76,4 +102,6 @@ void dump_list(int copy[])
 {
 	memcpy(copy, array, size * sizeof(int));
 }
+
+
 #endif
