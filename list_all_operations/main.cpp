@@ -28,12 +28,44 @@ namespace {
 
 	bool test_dump()
 	{
-		printf("%d\n", (int)numbers.size());
 		dump_list(list_copy);
 		int index = 0;
 		for (auto it = numbers.begin(); it != numbers.end(); ++it, ++index)
 		{
 			if (*it != list_copy[index]) return false;
+		}
+		return true;
+	}
+	bool test_action(int action)
+	{
+		switch (action)
+		{
+			case 0:
+			{
+				int value = mrand(INT_MAX);
+				numbers.push_back(value);
+				push_back(value);
+				break;
+			}
+			case 1:
+			{
+				int value = mrand(INT_MAX);
+				numbers.push_front(value);
+				push_front(value);
+				break;
+			}
+			case 2:
+			{
+				if (numbers.empty()) break;
+				if (pop_front() != numbers.front()) return false;
+				numbers.pop_front();
+				break;
+			}
+			case 3:
+			{
+				if (!test_dump()) return false;
+				break;
+			}
 		}
 		return true;
 	}
@@ -46,31 +78,7 @@ namespace {
 		numbers.clear();
 		for (int i = 0; i < iterations; ++i)
 		{
-			int action = mrand(3);
-			switch (action)
-			{
-				case 0:
-				{
-					int value = mrand(INT_MAX);
-					numbers.push_back(value);
-					push_back(value);
-					break;
-				}
-				case 1:
-				{
-					int value = mrand(INT_MAX);
-					numbers.push_front(value);
-					push_front(value);
-					break;
-				}
-				case 2:
-				{
-					if (numbers.empty()) break;
-					if (pop_front() != numbers.front()) return false;
-					numbers.pop_front();
-					break;
-				}
-			}
+			if (!test_action(mrand(3))) return false;
 
 			if (mrand(iterations/10) == 0)
 			{
@@ -79,7 +87,31 @@ namespace {
 		}
 		return test_dump();
 	}
+
+	bool test_manual()
+	{
+		int commands;
+		bool result = true;
+		(void)scanf("%d", &commands);
+		init();
+		numbers.clear();
+		for (int i = 0; i < commands; ++i)
+		{
+			int action;
+			(void)scanf("%d", &action);
+			result = result && test_action(action);
+		}
+		return result && test_dump();
+	}
+
+	bool test()
+	{
+		int method;
+		(void)scanf("%d", &method);
+		return method == 1 ? test_random() : test_manual();
+	}
 }
+
 
 int main()
 {
@@ -88,7 +120,8 @@ int main()
 	(void)scanf("%d", &ntests);
 	for (int t = 1; t <= ntests; ++t)
 	{
-		printf("#%d %d\n", t, test_random() ? 100 : 0);
+
+		printf("#%d %d\n", t, test() ? 100 : 0);
 	}
 	return 0;
 }
