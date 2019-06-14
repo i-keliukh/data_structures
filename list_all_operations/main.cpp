@@ -13,6 +13,11 @@ int pop_front();
 void push_back(int value);
 void dump_list(int copy[]);
 
+void init_iterator();
+void inc_iterator();
+int get_value();
+void insert(int value);
+
 
 namespace {
 	typedef unsigned int uint;
@@ -24,6 +29,7 @@ namespace {
 	}
 
 	std::list<int> numbers;
+	std::list<int>::iterator iterator;
 	int list_copy[1000000];
 
 	bool test_dump()
@@ -56,17 +62,48 @@ namespace {
 			}
 			case 2:
 			{
-				if (numbers.empty()) break;
+				if (numbers.empty() || iterator == numbers.begin()) break;
 				if (pop_front() != numbers.front()) return false;
 				numbers.pop_front();
 				break;
 			}
 			case 3:
 			{
+				if (numbers.empty()) break;
+				init_iterator();
+				iterator = numbers.begin();
+				break;
+			}
+			case 4:
+			{
+				if (iterator == numbers.end()) break;
+				inc_iterator();
+				++iterator;
+				break;
+			}
+			case 5:
+			{
+				if (iterator == numbers.end()) break;
+				if (*iterator != get_value()) return false;
+				break;
+			}
+			case 6:
+			{
+				if (iterator == numbers.end()) break;
+				iterator++;
+				int value = mrand(INT_MAX);
+				iterator = numbers.insert(iterator, value);
+				insert(value);
+				break;
+			}
+			case 7:
+			{
 				if (!test_dump()) return false;
 				break;
 			}
+
 		}
+
 		return true;
 	}
 
@@ -76,9 +113,10 @@ namespace {
 		(void)scanf("%d%u", &iterations, &seed);
 		init();
 		numbers.clear();
+		iterator = numbers.end();
 		for (int i = 0; i < iterations; ++i)
 		{
-			if (!test_action(mrand(3))) return false;
+			if (!test_action(mrand(7))) return false;
 
 			if (mrand(iterations/10) == 0)
 			{
@@ -95,6 +133,7 @@ namespace {
 		(void)scanf("%d", &commands);
 		init();
 		numbers.clear();
+		iterator = numbers.end();
 		for (int i = 0; i < commands; ++i)
 		{
 			int action;

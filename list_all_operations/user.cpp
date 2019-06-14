@@ -69,3 +69,35 @@ void dump_list(int copy[])
 	}
 }
 
+int current;
+
+void init_iterator()
+{
+	current = first;
+}
+
+void inc_iterator()
+{
+	current = array[current].next;
+}
+
+int get_value()
+{
+	return array[current].value;
+}
+
+void insert(int value)
+{
+	int next = array[current].next;
+
+	array[size].value = value;
+	array[size].next = next;
+
+	array[current].next = size;
+	if (last == current) {
+		last = size;
+	}
+	current = size;
+
+	size++;
+}
