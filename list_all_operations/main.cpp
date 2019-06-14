@@ -18,6 +18,8 @@ void inc_iterator();
 int get_value();
 void insert(int value);
 
+void remove();
+
 
 namespace {
 	typedef unsigned int uint;
@@ -98,6 +100,16 @@ namespace {
 			}
 			case 7:
 			{
+				if (iterator == numbers.end()) break;
+				remove();
+				auto next_element = iterator;
+				++next_element;
+				if (next_element == numbers.end()) break;
+				numbers.erase(next_element);
+				break;
+			}
+			case 8:
+			{
 				if (!test_dump()) return false;
 				break;
 			}
@@ -116,7 +128,7 @@ namespace {
 		iterator = numbers.end();
 		for (int i = 0; i < iterations; ++i)
 		{
-			if (!test_action(mrand(7))) return false;
+			if (!test_action(mrand(8))) return false;
 
 			if (mrand(iterations/10) == 0)
 			{

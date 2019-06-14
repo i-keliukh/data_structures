@@ -101,3 +101,13 @@ void insert(int value)
 
 	size++;
 }
+
+void remove() {
+	int next = array[current].next;
+	if (next == -1) return;
+
+	array[current].next = array[next].next;
+	if (last == next) {
+		last = current;
+	}
+}
