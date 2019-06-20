@@ -1,6 +1,7 @@
 #define MAX_SIZE	1100000
 
-struct Node {
+struct Node
+{
 	int value;
 	int next;
 };
@@ -94,7 +95,8 @@ void insert(int value)
 	array[size].next = next;
 
 	array[current].next = size;
-	if (last == current) {
+	if (last == current)
+	{
 		last = size;
 	}
 	current = size;
@@ -102,12 +104,50 @@ void insert(int value)
 	size++;
 }
 
-void remove() {
+void remove()
+{
 	int next = array[current].next;
 	if (next == -1) return;
 
 	array[current].next = array[next].next;
-	if (last == next) {
+	if (last == next)
+	{
 		last = current;
+	}
+}
+
+int cut_begin;
+int cut_end;
+
+void cut(int count)
+{
+	if (array[current].next == -1) return;
+	cut_begin = array[current].next;
+
+	int end = cut_begin;
+	cut_end = -1;
+
+	while (count > 0 && end != -1)
+	{
+		cut_end = end;
+		end = array[end].next;
+		count--;
+	}
+
+	if (end == -1)
+	{
+		last = current;
+	}
+	array[current].next = end;
+}
+
+void paste()
+{
+	int next = array[current].next;
+	array[current].next = cut_begin;
+	array[cut_end].next = next;
+	if (last == current)
+	{
+		last = cut_end;
 	}
 }
