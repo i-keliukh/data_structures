@@ -1,54 +1,82 @@
-
-struct Element
+struct Node
 {
     int value;
     unsigned short props;
+    int next;
 };
 
-Element sorted_array[150000];
-int size;
+#define NUMBER_OF_BUCKETS 1000
+
+static int list_heads[NUMBER_OF_BUCKETS];
+
+static Node pool[250000];
+static int size = 0;
+
 
 void init()
 {
-    for (int i = 0; i < 10; i++)
-    {
-        sorted_array[i].value = 0;
-    }
     size = 0;
+    for (int i = 0; i < NUMBER_OF_BUCKETS; i++)
+    {
+        list_heads[i] = -1;
+    }
 }
 
-void add_number(int value, unsigned short props)
+
+void add_number(int bucket, int value, unsigned short props)
 {
-    if (size == 0)
+    if (list_heads[bucket] < 0 || pool[list_heads[bucket]].value < value)
     {
-        sorted_array[0].value = value;
-        sorted_array[0].props = props;
+        pool[size].value = value;
+        pool[size].props = props;
+        pool[size].next = list_heads[bucket];
+        list_heads[bucket] = size;
         size++;
         return;
     }
 
-    for (int i = size; i >= 0; i--)
+    int current = list_heads[bucket];
+    while (pool[current].next > -1)
     {
-        if (i > 0 && sorted_array[i - 1].value < value)
+        if (pool[pool[current].next].value > value)
         {
-            sorted_array[i] = sorted_array[i - 1];
+            current = pool[current].next;
         }
         else
         {
-            sorted_array[i].value = value;
-            sorted_array[i].props = props;
             break;
         }
     }
+
+    pool[size].value = value;
+    pool[size].props = props;
+    pool[size].next = pool[current].next;
+    pool[current].next = size;
     size++;
+    return;
 }
 
-void dump_array(int array[10], unsigned short mandatory_props)
+
+void dump_array(int bucket, int array[10], unsigned short mandatory_props)
 {
-    for (int i = 0, j = 0; i < size && j < 10; i++)
+    int current = list_heads[bucket];
+    int added = 0;
+    while (current != -1)
     {
-        if ((sorted_array[i].props & mandatory_props) != mandatory_props) continue;
-        array[j] = sorted_array[i].value;
-        j++;
+        if (pool[current].value == 16657355)
+        {
+            int i = 0;
+        }
+
+        if((pool[current].props & mandatory_props) != mandatory_props)
+        {
+            current = pool[current].next;
+            continue;
+        }
+
+        array[added++] = pool[current].value;
+        current = pool[current].next;
+
+        if (added == 10) return;
     }
 }

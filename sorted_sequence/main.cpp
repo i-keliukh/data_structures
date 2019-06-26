@@ -4,10 +4,11 @@
 #include <limits.h>
 #include <set>
 
+#define NUMBER_OF_BUCKETS 1000
 
 void init();
-void add_number(int value, unsigned short props);
-void dump_array(int array[10], unsigned short mandatory_props);
+void add_number(int bucket, int value, unsigned short props);
+void dump_array(int bucket, int array[10], unsigned short mandatory_props);
 
 namespace {
     typedef unsigned int uint;
@@ -29,42 +30,56 @@ namespace {
         }
     };
 
-    std::multiset<StoredNode> numbers;
+    std::multiset<StoredNode> numbers[NUMBER_OF_BUCKETS];
 
     bool test_dump()
     {
-        int array[10];
-        for (int attempts = 0; attempts < 16; attempts++)
+        for (int bucket = 0; bucket < NUMBER_OF_BUCKETS; bucket++)
         {
-            unsigned short mandatory_props = mrand(USHRT_MAX + 1);
-            dump_array(array, mandatory_props);
-
-            int i = 0;
-            for (auto it = numbers.rbegin(); it != numbers.rend() && i < 10; ++it)
+            int array[10];
+            for (int attempts = 0; attempts < 64; attempts++)
             {
-                if ((it->props & mandatory_props) != mandatory_props) continue;
-                if (it->value != array[i])
-                    return false;
-                i++;
+                unsigned short mandatory_props = mrand(USHRT_MAX + 1);
+                dump_array(bucket, array, mandatory_props);
+
+                int i = 0;
+                for (auto it = numbers[bucket].rbegin(); it != numbers[bucket].rend() && i < 10; ++it)
+                {
+                    if ((it->props & mandatory_props) != mandatory_props) continue;
+                    if (it->value != array[i])
+                        return false;
+                    i++;
+                }
             }
         }
+
         return true;
     }
 
     bool test_random()
     {
         int iterations = 0;
+        int hot_bucket = mrand(NUMBER_OF_BUCKETS);
         (void)scanf("%d", &iterations);
         init();
-        numbers.clear();
+        for (int i = 0; i < NUMBER_OF_BUCKETS; i++)
+        {
+            numbers[i].clear();
+        }
 
         for (int i = 0; i < iterations; ++i)
         {
             int value = mrand(INT_MAX);
             unsigned short props = mrand(USHRT_MAX + 1);
-            numbers.insert(StoredNode(value, props));
+            int bucket = mrand(NUMBER_OF_BUCKETS*5/4);
+            if (bucket >= NUMBER_OF_BUCKETS)
+            {
+                bucket = hot_bucket;
+            }
 
-            add_number(value, props);
+            numbers[bucket].insert(StoredNode(value, props));
+
+            add_number(bucket, value, props);
 
             if (mrand(1 + iterations / 10) == 0)
             {
