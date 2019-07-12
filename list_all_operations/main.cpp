@@ -6,226 +6,238 @@
 #include <vector>
 #include <list>
 
+#define NUMBER_OF_BUCKETS 1000
 
 void init();
-void push_front(int value);
-int pop_front();
-void push_back(int value);
-void dump_list(int copy[]);
+void push_front(int bucket, int value);
+int pop_front(int bucket);
+void push_back(int bucket, int value);
+void dump_list(int bucket, int copy[]);
 
-void init_iterator();
-void inc_iterator();
-int get_value();
-void insert(int value);
+void init_iterator(int bucket);
+void inc_iterator(int bucket);
+int get_value(int bucket);
+void insert(int bucket, int value);
 
-void remove();
+void remove(int bucket);
 
-void cut(int count);
-void paste();
+void cut_tail(int bucket);
+void paste(int bucket);
 
 
 namespace {
-	typedef unsigned int uint;
-	static uint seed;
-	static uint mrand(uint num)
-	{
-		seed = seed * 1103515245 + 37209;
-		return ((seed >> 8) % num);
-	}
+    typedef unsigned int uint;
+    static uint seed;
+    static uint mrand(uint num)
+    {
+        seed = seed * 1103515245 + 37209;
+        return ((seed >> 8) % num);
+    }
 
-	std::list<int> numbers, cut_list;
-	std::list<int>::iterator numbers_iterator;
+    std::list<int> numbers[NUMBER_OF_BUCKETS], cut_list;
+    std::list<int>::iterator numbers_iterator[NUMBER_OF_BUCKETS];
+    int numbers_iterator_index[NUMBER_OF_BUCKETS];
 
-	int list_copy[1000000];
+    int list_copy[1000000];
 
-	bool test_dump()
-	{
-		dump_list(list_copy);
-		int index = 0;
-		for (auto it = numbers.begin(); it != numbers.end(); ++it, ++index)
-		{
-			if (*it != list_copy[index]) return false;
-		}
-		return true;
-	}
-	bool test_action(int action)
-	{
-		switch (action)
-		{
-			case 0:
-			{
-				int value = mrand(INT_MAX);
-				numbers.push_back(value);
-				push_back(value);
-				break;
-			}
-			case 1:
-			{
-				int value = mrand(INT_MAX);
-				numbers.push_front(value);
-				push_front(value);
-				break;
-			}
-			case 2:
-			{
-				if (numbers.empty() || numbers_iterator == numbers.begin()) break;
-				if (pop_front() != numbers.front()) return false;
-				numbers.pop_front();
-				break;
-			}
-			case 3:
-			{
-				if (numbers.empty()) break;
-				init_iterator();
-				numbers_iterator = numbers.begin();
-				break;
-			}
-			case 4:
-			{
-				if (numbers_iterator == numbers.end()) break;
-				inc_iterator();
-				++numbers_iterator;
-				break;
-			}
-			case 5:
-			{
-				if (numbers_iterator == numbers.end()) break;
-				if (*numbers_iterator != get_value()) return false;
-				break;
-			}
-			case 6:
-			{
-				if (numbers_iterator == numbers.end()) break;
-				numbers_iterator++;
-				int value = mrand(INT_MAX);
-				numbers_iterator = numbers.insert(numbers_iterator, value);
-				insert(value);
-				break;
-			}
-			case 7:
-			{
-				if (numbers_iterator == numbers.end()) break;
-				remove();
-				auto next_element = std::next(numbers_iterator);
-				if (next_element == numbers.end()) break;
-				numbers.erase(next_element);
-				break;
-			}
-			case 8:
-			{
-				if (numbers_iterator == numbers.end()) break;
-				auto next_element = std::next(numbers_iterator);
+    bool test_dump()
+    {
+        for (int i = 0; i < NUMBER_OF_BUCKETS; i++)
+        {
+            dump_list(i, list_copy);
+            int index = 0;
+            for (auto it = numbers[i].begin(); it != numbers[i].end(); ++it, ++index)
+            {
+                if (*it != list_copy[index]) return false;
+            }
+        }
+        return true;
+    }
 
-				int count = mrand((uint)numbers.size() + 1) + 1;
-				int real_count = 0;
+    bool test_action(int action)
+    {
+        int bucket = mrand(NUMBER_OF_BUCKETS);
 
-				auto last_element = next_element;
-				while (real_count < count && last_element != numbers.end())
-				{
-					++last_element;
-					++real_count;
-				}
+        switch (action)
+        {
+            case 0:
+            {
+                int value = mrand(INT_MAX);
+                numbers[bucket].push_back(value);
+                push_back(bucket, value);
+                break;
+            }
+            case 1:
+            {
+                int value = mrand(INT_MAX);
+                numbers[bucket].push_front(value);
+                push_front(bucket, value);
+                ++numbers_iterator_index[bucket];
+                break;
+            }
+            case 2:
+            {
+                if (numbers[bucket].empty() || numbers_iterator[bucket] == numbers[bucket].begin()) break;
+                if (pop_front(bucket) != numbers[bucket].front()) return false;
+                numbers[bucket].pop_front();
+                --numbers_iterator_index[bucket];
+                break;
+            }
+            case 3:
+            {
+                if (numbers[bucket].empty()) break;
+                init_iterator(bucket);
+                numbers_iterator[bucket] = numbers[bucket].begin();
+                numbers_iterator_index[bucket] = 0;
+                break;
+            }
+            case 4:
+            {
+                if (numbers_iterator[bucket] == numbers[bucket].end()) break;
+                inc_iterator(bucket);
+                ++numbers_iterator[bucket];
+                ++numbers_iterator_index[bucket];
+                break;
+            }
+            case 5:
+            {
+                if (numbers_iterator[bucket] == numbers[bucket].end()) break;
+                if (*numbers_iterator[bucket] != get_value(bucket)) return false;
+                break;
+            }
+            case 6:
+            {
+                if (numbers_iterator[bucket] == numbers[bucket].end()) break;
+                ++numbers_iterator[bucket];
+                ++numbers_iterator_index[bucket];
+                int value = mrand(INT_MAX);
+                numbers_iterator[bucket] = numbers[bucket].insert(numbers_iterator[bucket], value);
+                insert(bucket, value);
+                break;
+            }
+            case 7:
+            {
+                if (numbers_iterator[bucket] == numbers[bucket].end()) break;
+                remove(bucket);
+                auto next_element = std::next(numbers_iterator[bucket]);
+                if (next_element == numbers[bucket].end()) break;
+                numbers[bucket].erase(next_element);
+                break;
+            }
+            case 8:
+            {
+                if (numbers_iterator[bucket] == numbers[bucket].end()) break;
+                if (!cut_list.empty() && mrand(10000) != 0) break; // the cut list gets overwritten with low probability
+                
+                auto next_element = std::next(numbers_iterator[bucket]);
 
-				if (numbers.size() % 2 == 0 && real_count == numbers.size() / 2)
-				{
-					// The nasty bug in std library of VC 2019 leads to the incorrect
-					// update of the debug pointer to owning container inside iterator
-					// when the number of spliced elements equals the number of remaining
-					// elements. It only reproduces when using debug configuration in
-					// IDE, but is still annoying enough to require this workaround.
-					break;
-				}
+                if (numbers[bucket].size() % 2 == 0 && numbers_iterator_index[bucket] == numbers[bucket].size() / 2 - 1)
+                {
+                    // The nasty bug in std library of VC 2019 leads to the incorrect
+                    // update of the debug pointer to owning container inside iterator
+                    // when the number of spliced elements equals the number of remaining
+                    // elements. It only reproduces when using debug configuration in
+                    // IDE, but is still annoying enough to require this workaround.
+                    break;
+                }
 
-				if (next_element != numbers.end())
-				{
-					cut_list.clear();
-					cut_list.splice(cut_list.begin(), numbers, next_element, last_element);
-				}
-				cut(count);
+                if (next_element != numbers[bucket].end())
+                {
+                    cut_list.clear();
+                    cut_list.splice(cut_list.begin(), numbers[bucket], next_element, numbers[bucket].end());
+                }
+                cut_tail(bucket);
 
-				break;
-			}
-			case 9:
-			{
-				if (cut_list.empty()) break;
-				if (numbers_iterator == numbers.end()) break;
-				paste();
-				numbers.splice(std::next(numbers_iterator), cut_list);
-				break;
-			}
-			case 10:
-			{
-				if (!test_dump()) return false;
-				break;
-			}
+                break;
+            }
+            case 9:
+            {
+                if (cut_list.empty()) break;
+                if (numbers_iterator[bucket] == numbers[bucket].end()) break;
+                paste(bucket);
+                numbers[bucket].splice(std::next(numbers_iterator[bucket]), cut_list);
+                break;
+            }
+            case 10:
+            {
+                if (!test_dump()) return false;
+                break;
+            }
 
-		}
+        }
 
-		return true;
-	}
-	
+        return true;
+    }
+    
+    void test_init()
+    {
+        init();
+        cut_list.clear();
 
+        for (int i = 0; i < NUMBER_OF_BUCKETS; i++)
+        {
+            numbers[i].clear();
+            numbers_iterator[i] = numbers[i].end();
+            numbers_iterator_index[i] = -1;
+            init_iterator(i);
+        }
+    }
 
-	bool test_random()
-	{
-		int iterations = 0;
-		(void)scanf("%d%u", &iterations, &seed);
-		init();
-		numbers.clear();
-		cut_list.clear();
-		numbers_iterator = numbers.end();
-		for (int i = 0; i < iterations; ++i)
-		{
-			int action = mrand(10);
-			if (action != 8 || mrand(500) == 0)
-			{
-				if (!test_action(action)) return false;
-			}
+    bool test_random()
+    {
+        int iterations = 0;
+        (void)scanf("%d%u", &iterations, &seed);
 
-			if (mrand(iterations/10) == 0)
-			{
-				if (!test_dump()) return false;
-			}
-		}
-		return test_dump();
-	}
+        test_init();
 
-	bool test_manual()
-	{
-		int commands;
-		bool result = true;
-		(void)scanf("%d", &commands);
-		init();
-		numbers.clear();
-		cut_list.clear();
-		numbers_iterator = numbers.end();
+        for (int i = 0; i < iterations; ++i)
+        {
+            int action = mrand(10);
 
-		for (int i = 0; i < commands; ++i)
-		{
-			int action;
-			(void)scanf("%d", &action);
-			result = result && test_action(action);
-		}
-		return result && test_dump();
-	}
+            if (!test_action(action)) return false;
+                
+            if (mrand(iterations/10) == 0)
+            {
+                if (!test_dump()) return false;
+            }
+        }
+        return test_dump();
+    }
 
-	bool test()
-	{
-		int method;
-		(void)scanf("%d", &method);
-		return method == 1 ? test_random() : test_manual();
-	}
+    bool test_manual()
+    {
+        int commands;
+        bool result = true;
+        (void)scanf("%d", &commands);
+
+        test_init();
+
+        for (int i = 0; i < commands; ++i)
+        {
+            int action;
+            (void)scanf("%d", &action);
+            result = result && test_action(action);
+        }
+        return result && test_dump();
+    }
+
+    bool test()
+    {
+        int method;
+        (void)scanf("%d", &method);
+        return method == 1 ? test_random() : test_manual();
+    }
 }
 
 
 int main()
 {
-	setbuf(stdout, NULL);
-	int ntests = 0;
-	(void)scanf("%d", &ntests);
-	for (int t = 1; t <= ntests; ++t)
-	{
-		printf("#%d %d\n", t, test() ? 100 : 0);
-	}
-	return 0;
+    setbuf(stdout, NULL);
+    int ntests = 0;
+    (void)scanf("%d", &ntests);
+    for (int t = 1; t <= ntests; ++t)
+    {
+        printf("#%d %d\n", t, test() ? 100 : 0);
+    }
+    return 0;
 }

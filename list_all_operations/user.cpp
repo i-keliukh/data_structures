@@ -1,153 +1,149 @@
-#define MAX_SIZE	1100000
+#define MAX_SIZE            1100000
+#define NUMBER_OF_BUCKETS   1000
 
 struct Node
 {
-	int value;
-	int next;
+    int value;
+    int next;
 };
 
 Node array[MAX_SIZE];
 unsigned int size;
 
-int first;
-int last;
+struct ListIterators {
+    int first;
+    int last;
+    int current;
+};
 
-void init() 
-{
-	size = 0;
-	first = -1;
-	last = -1;
-}
-
-void push_front(int value)
-{
-	array[size].value = value;
-	array[size].next = first;
-	if (first == -1)
-	{
-		last = size;
-	}
-	first = size;
-	size++;
-}
-
-int pop_front()
-{
-	int result = array[first].value;
-	first = array[first].next;
-	if (first == -1)
-	{
-		last = -1;
-	}
-	return result;
-}
-
-void push_back(int value)
-{
-	array[size].value = value;
-	array[size].next = -1;
-	if (last == -1) 
-	{
-		first = size;
-	}
-	else
-	{
-		array[last].next = size;
-	}
-	last = size;
-	size++;
-}
-
-void dump_list(int copy[])
-{
-	int iterator = first;
-	int index = 0;
-	while (iterator != -1)
-	{
-		copy[index] = array[iterator].value;
-		index++;
-		iterator = array[iterator].next;
-	}
-}
-
-int current;
-
-void init_iterator()
-{
-	current = first;
-}
-
-void inc_iterator()
-{
-	current = array[current].next;
-}
-
-int get_value()
-{
-	return array[current].value;
-}
-
-void insert(int value)
-{
-	int next = array[current].next;
-
-	array[size].value = value;
-	array[size].next = next;
-
-	array[current].next = size;
-	if (last == current)
-	{
-		last = size;
-	}
-	current = size;
-
-	size++;
-}
-
-void remove()
-{
-	int next = array[current].next;
-	if (next == -1) return;
-
-	array[current].next = array[next].next;
-	if (last == next)
-	{
-		last = current;
-	}
-}
-
+ListIterators list_iterators[NUMBER_OF_BUCKETS];
 int cut_begin;
 int cut_end;
 
-void cut(int count)
+
+void init() 
 {
-	if (array[current].next == -1) return;
-	cut_begin = array[current].next;
-
-	int end = cut_begin;
-	cut_end = -1;
-
-	while (count > 0 && end != -1)
-	{
-		cut_end = end;
-		end = array[end].next;
-		count--;
-	}
-
-	if (end == -1)
-	{
-		last = current;
-	}
-	array[current].next = end;
+    size = 0;
+    for (int i = 0; i < NUMBER_OF_BUCKETS; i++)
+    {
+        list_iterators[i].first = -1;
+        list_iterators[i].last = -1;
+    }
 }
 
-void paste()
+void push_front(int bucket, int value)
 {
-	int next = array[current].next;
-	array[current].next = cut_begin;
-	array[cut_end].next = next;
-	if (last == current)
-	{
-		last = cut_end;
-	}
+    array[size].value = value;
+    array[size].next = list_iterators[bucket].first;
+    if (list_iterators[bucket].first == -1)
+    {
+        list_iterators[bucket].last = size;
+    }
+    list_iterators[bucket].first = size;
+    size++;
+}
+
+int pop_front(int bucket)
+{
+    int result = array[list_iterators[bucket].first].value;
+    list_iterators[bucket].first = array[list_iterators[bucket].first].next;
+    if (list_iterators[bucket].first == -1)
+    {
+        list_iterators[bucket].last = -1;
+    }
+    return result;
+}
+
+void push_back(int bucket, int value)
+{
+    array[size].value = value;
+    array[size].next = -1;
+    if (list_iterators[bucket].last == -1)
+    {
+        list_iterators[bucket].first = size;
+    }
+    else
+    {
+        array[list_iterators[bucket].last].next = size;
+    }
+    list_iterators[bucket].last = size;
+    size++;
+}
+
+void dump_list(int bucket, int copy[])
+{
+    int iterator = list_iterators[bucket].first;
+    int index = 0;
+    while (iterator != -1)
+    {
+        copy[index] = array[iterator].value;
+        index++;
+        iterator = array[iterator].next;
+    }
+}
+
+
+void init_iterator(int bucket)
+{
+    list_iterators[bucket].current = list_iterators[bucket].first;
+}
+
+void inc_iterator(int bucket)
+{
+    list_iterators[bucket].current = array[list_iterators[bucket].current].next;
+}
+
+int get_value(int bucket)
+{
+    return array[list_iterators[bucket].current].value;
+}
+
+void insert(int bucket, int value)
+{
+    int next = array[list_iterators[bucket].current].next;
+
+    array[size].value = value;
+    array[size].next = next;
+
+    array[list_iterators[bucket].current].next = size;
+    if (list_iterators[bucket].last == list_iterators[bucket].current)
+    {
+        list_iterators[bucket].last = size;
+    }
+    list_iterators[bucket].current = size;
+
+    size++;
+}
+
+void remove(int bucket)
+{
+    int next = array[list_iterators[bucket].current].next;
+    if (next == -1) return;
+
+    array[list_iterators[bucket].current].next = array[next].next;
+    if (list_iterators[bucket].last == next)
+    {
+        list_iterators[bucket].last = list_iterators[bucket].current;
+    }
+}
+
+
+void cut_tail(int bucket)
+{
+    if (array[list_iterators[bucket].current].next == -1) return;
+    cut_begin = array[list_iterators[bucket].current].next;
+    cut_end = list_iterators[bucket].last;
+    list_iterators[bucket].last = list_iterators[bucket].current;
+    array[list_iterators[bucket].current].next = -1;
+}
+
+void paste(int bucket)
+{
+    int next = array[list_iterators[bucket].current].next;
+    array[list_iterators[bucket].current].next = cut_begin;
+    array[cut_end].next = next;
+    if (list_iterators[bucket].last == list_iterators[bucket].current)
+    {
+        list_iterators[bucket].last = cut_end;
+    }
 }
