@@ -1,4 +1,4 @@
-#define POOL_SIZE       900000
+#define POOL_SIZE       100000
 #define HASHMAP_SIZE    500009
 
 typedef unsigned long long ulong64;
@@ -11,6 +11,7 @@ struct Node
 
 int size;
 Node pool[POOL_SIZE];
+int free_list_head;
 int head[HASHMAP_SIZE];
 
 void init()
@@ -20,6 +21,7 @@ void init()
     {
         head[i] = -1;
     }
+    free_list_head = -1;
 }
 
 inline unsigned int hash(ulong64 word)
@@ -49,10 +51,21 @@ void add(char* word)
     {
         return;
     }
-    pool[size].next = head[hash_value];
-    pool[size].value = string;
-    head[hash_value] = size;
-    size++;
+
+    int new_element;
+    if (size < POOL_SIZE)
+    {
+        new_element = size;
+        size++;
+    }
+    else
+    {
+        new_element = free_list_head;
+        free_list_head = pool[free_list_head].next;
+    }
+    pool[new_element].next = head[hash_value];
+    pool[new_element].value = string;
+    head[hash_value] = new_element;
 }
 
 void del(char* word)
@@ -75,6 +88,8 @@ void del(char* word)
             {
                 pool[prev].next = pool[index].next;
             }
+            pool[index].next = free_list_head;
+            free_list_head = index;
             return;
         }
         prev = index;
