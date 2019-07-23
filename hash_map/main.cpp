@@ -1,5 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <cstdio>
+#include <vector>
+using namespace std;
 
 const int kWordSize = 63;
 const int kMaxWords = 100000;
@@ -39,10 +41,13 @@ namespace {
             return alpahabet[rand(kAlpahabetSize)];
         }
 
-        inline void rand_str(int length, char* ptr) {
-            char* end = ptr + length;
-            while (ptr != end)* ptr++ = rand_char();
-            *ptr = 0;
+        inline vector<char> rand_str(int length) {
+            vector<char> result;
+            length = rand(length - 6) + 6;
+            result.resize(length + 1);
+            result[length--] = 0;
+            while (length>=0) result[length--] = rand_char();
+            return result;
         }
     };
 
@@ -53,8 +58,7 @@ namespace {
             Rnd rnd(seed);
 
             for (int i = 0; i < words; ++i) {
-
-                rnd.rand_str(kWordSize, dict[i].word);
+                dict[i].word = rnd.rand_str(kWordSize);
                 dict[i].present = false;
             }
 
@@ -79,32 +83,23 @@ namespace {
             return fail;
         }
     private:
-        void copyKey(int index) {
-            for (int i = 0; i <= kWordSize; ++i) {
-                key[i] = dict[index].word[i];
-            }
-        }
         void add(int index) {
-            copyKey(index);
-            ::add(dict[index].word);
+            ::add(&dict[index].word[0]);
             dict[index].present = true;
         }
 
         void del(int index) {
-            copyKey(index);
-            ::del(dict[index].word);
+            ::del(&dict[index].word[0]);
             dict[index].present = false;
         }
 
         bool check(int index) {
-            copyKey(index);
-            bool result = ::check(dict[index].word);
+            bool result = ::check(&dict[index].word[0]);
             return dict[index].present == result;
         }
 
-        char key[kWordSize + 1];
         struct {
-            char word[kWordSize + 1];
+            vector<char> word;
             bool present;
         } dict[kMaxWords];
     };
