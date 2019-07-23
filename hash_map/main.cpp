@@ -1,7 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <cstdio>
 
-const int kWordSize = 6;
+const int kWordSize = 63;
 const int kMaxWords = 100000;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,11 +1,9 @@
 #define POOL_SIZE       100000
 #define HASHMAP_SIZE    500009
 
-typedef unsigned long long ulong64;
-
 struct Node
 {
-    ulong64 value;
+    char value[64];
     int next;
 };
 
@@ -24,30 +22,53 @@ void init()
     free_list_head = -1;
 }
 
-inline unsigned int hash(ulong64 word)
+unsigned long hash(register const char* str)
 {
-    return word % HASHMAP_SIZE;
+    register unsigned long hash = 5381;
+    register int c;
+
+    while (c = *str++)
+    {
+        hash = (((hash << 5) + hash) + c) % HASHMAP_SIZE;
+    }
+
+    return hash % HASHMAP_SIZE;
 }
 
-inline ulong64 to_ulong64(char* word)
+inline int is_same(register char *a, register char *b)
 {
-    return (*(ulong64*)word) & 0xFFFFFFFFFFFF;
+    while (*a != 0 && *b == *a)
+    {
+        a++;
+        b++;
+    }
+    return *b == *a;
 }
 
-inline bool find(int index, ulong64 word)
+inline void mycpy(register char* dst, register char* src)
+{
+    while (*src != 0)
+    {
+        *dst = *src;
+        src++;
+        dst++;
+    }
+    *dst = 0;
+}
+
+inline bool find(int index, char* word)
 {
     for (; index != -1; index = pool[index].next)
     {
-        if (pool[index].value == word) return true;
+        if (is_same(pool[index].value, word)) return true;
     }
     return false;
 }
 
 void add(char* word)
 {
-    ulong64 string = to_ulong64(word);
-    unsigned int hash_value = hash(string);
-    if (find(head[hash_value], string))
+    unsigned int hash_value = hash(word);
+    if (find(head[hash_value], word))
     {
         return;
     }
@@ -64,41 +85,40 @@ void add(char* word)
         free_list_head = pool[free_list_head].next;
     }
     pool[new_element].next = head[hash_value];
-    pool[new_element].value = string;
+    mycpy(pool[new_element].value, word);
     head[hash_value] = new_element;
 }
 
 void del(char* word)
 {
-    ulong64 string = to_ulong64(word);
-    unsigned int hash_value = hash(string);
-    int index = head[hash_value];
-    int prev = index;
+    unsigned int hash_value = hash(word);
+    register int index = head[hash_value];
+    register int prev;
     int first = index;
 
-    for (; index != -1; index = pool[index].next)
+    for (; index != -1; prev = index, index = pool[index].next)
     {
-        if (pool[index].value == string)
+        if (!is_same(pool[index].value, word))
         {
-            if (index == first)
-            {
-                head[hash_value] = pool[index].next;
-            }
-            else
-            {
-                pool[prev].next = pool[index].next;
-            }
-            pool[index].next = free_list_head;
-            free_list_head = index;
-            return;
+            continue;
         }
-        prev = index;
+
+        if (index == first)
+        {
+            head[hash_value] = pool[index].next;
+        }
+        else
+        {
+            pool[prev].next = pool[index].next;
+        }
+        pool[index].next = free_list_head;
+        free_list_head = index;
+        return;
     }
 }
 
 bool check(char* word)
 {
-    ulong64 string = to_ulong64(word);
-    unsigned int index = hash(string);
-    return find(head[index], string);
+    unsigned int index = hash(word);
+    return find(head[index], word);
 }
