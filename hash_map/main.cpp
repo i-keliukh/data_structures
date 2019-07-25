@@ -3,7 +3,7 @@
 #include <vector>
 using namespace std;
 
-const int kWordSize = 63;
+const int kWordSize = 31;
 const int kMaxWords = 100000;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -18,14 +18,12 @@ namespace {
     struct Rnd {
         typedef unsigned long long UInit64;
         UInit64 seed;
-        static const int kAlpahabetSize = ('Z' - 'A') + ('z' - 'a') + ('9' - '0') + 3;
+        static const int kAlpahabetSize = ('f' - 'a') + 1;
         char alpahabet[kAlpahabetSize];
 
         Rnd(UInit64 seed) : seed(seed) {
             char* p = alpahabet;
-            for (char c = 'A'; c <= 'Z'; ++c)* p++ = c;
-            for (char c = 'a'; c <= 'z'; ++c)* p++ = c;
-            for (char c = '0'; c <= '9'; ++c)* p++ = c;
+            for (char c = 'a'; c <= 'f'; ++c)* p++ = c;
         }
 
         inline UInit64 rand() {
@@ -43,7 +41,7 @@ namespace {
 
         inline vector<char> rand_str(int length) {
             vector<char> result;
-            length = rand(length - 6) + 6;
+            length = rand(length - 16) + 16;
             result.resize(length + 1);
             result[length--] = 0;
             while (length>=0) result[length--] = rand_char();
@@ -65,7 +63,7 @@ namespace {
             const int initRounds = static_cast<int>(words * 0.9);
             int fail = 0;
             ::init();
-            for (int i = 0; i < initRounds; ++i) {
+            for (int i = 0; i < initRounds ; ++i) {
                 add(rnd.rand(words));
                 add(rnd.rand(words));
                 del(rnd.rand(words));

@@ -3,7 +3,7 @@
 
 struct Node
 {
-    char value[64];
+    char value[32];
     int next;
 };
 
