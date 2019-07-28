@@ -1,20 +1,125 @@
-// servers.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+#define _CRT_SECURE_NO_WARNINGS
+#include <cstdio>
+#include <vector>
+using namespace std;
 
-#include <iostream>
+const int kWordSize = 20;
+const int kMaxWords = 100000;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+extern void init();
+void create(char name[20], char value[20]);
+void destroy(char name[20]);
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace {
+
+	struct Rnd {
+		typedef unsigned long long UInit64;
+		UInit64 seed;
+		static const int kAlpahabetSize = ('f' - 'a') + 1;
+		char alpahabet[kAlpahabetSize];
+
+		Rnd(UInit64 seed) : seed(seed) {
+			char* p = alpahabet;
+			for (char c = 'a'; c <= 'f'; ++c)* p++ = c;
+		}
+
+		inline UInit64 rand() {
+			seed = (214013 * seed + 2531011);
+			return seed >> 16;
+		}
+
+		inline int rand(UInit64 mx) {
+			return static_cast<int>(rand() % mx);
+		}
+
+		inline char rand_char() {
+			return alpahabet[rand(kAlpahabetSize)];
+		}
+
+		inline vector<char> rand_str(int length) {
+			vector<char> result;
+			result.resize(length + 1);
+			result[length--] = 0;
+			while (length >= 0) result[length--] = rand_char();
+			return result;
+		}
+	};
+
+	class Checker
+	{
+	public:
+		int run(int seed, int words, int rounds) {
+			Rnd rnd(seed);
+
+			for (int i = 0; i < words; ++i) {
+				dict[i].name = rnd.rand_str(kWordSize);
+				dict[i].value = rnd.rand_str(kWordSize);
+				dict[i].present = false;
+			}
+
+			const int initRounds = static_cast<int>(words * 0.9);
+			int fail = 0;
+			::init();
+			for (int i = 0; i < initRounds; ++i) {
+				add(rnd.rand(words), rnd.rand_str(kWordSize));
+				add(rnd.rand(words), rnd.rand_str(kWordSize));
+				del(rnd.rand(words));
+				if (!check(rnd.rand(words))) {
+					++fail;
+				}
+			}
+			for (int i = 0; i < rounds; ++i) {
+				add(rnd.rand(words), rnd.rand_str(kWordSize));
+				if (i == 79268)
+					i = i;
+				del(rnd.rand(words));
+				if (!check(rnd.rand(words))) {
+					++fail;
+				}
+			}
+			return fail;
+		}
+	private:
+		void add(int index, vector<char> value) {
+			::create(&dict[index].name[0], &value[0]);
+			dict[index].value = value;
+			dict[index].present = true;
+		}
+
+		void del(int index) {
+			::destroy(&dict[index].name[0]);
+			dict[index].present = false;
+		}
+
+		bool check(int index) {
+			//bool result = ::check(&dict[index].word[0]);
+			//return dict[index].present == result;
+			return true;
+		}
+
+		struct {
+			vector<char> name;
+			vector<char> value;
+			bool present;
+		} dict[kMaxWords];
+	};
+
+	Checker checker;
+}
 
 int main()
 {
-    std::cout << "Hello World!\n";
+	int tests;
+	(void)scanf("%d", &tests);
+
+	for (int test = 0; test < tests; ++test) {
+		int seed, words, rounds;
+		(void)scanf("%d%d%d", &seed, &words, &rounds);
+		printf("#%d %d\n", test + 1, checker.run(seed, words, rounds));
+	}
+
+	return 0;
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file

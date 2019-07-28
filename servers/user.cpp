@@ -22,11 +22,13 @@ struct Server
 
 int hash_head[HASHMAP_SIZE];
 int size;
+int free_list_head;
 Server pool[POOL_SIZE];
 
 void init()
 {
     size = 0;
+	free_list_head = -1;
     for (int i = 0; i < HASHMAP_SIZE; i++)
     {
         hash_head[i] = -1;
@@ -90,8 +92,20 @@ void create(char name[20], char value[20])
         }
     }
 
-
-
+	int new_item;
+	if (size < POOL_SIZE)
+	{
+		new_item = size++;
+	}
+	else
+	{
+		new_item = free_list_head;
+		free_list_head = pool[free_list_head].next_with_same_hash;
+	}
+	mycpy(pool[new_item].name, name);
+	mycpy(pool[new_item].value, value);
+	pool[new_item].next_with_same_hash = hash_head[hash_value];
+	hash_head[hash_value] = new_item;
 }
 
 void link(char name[20], char target[20]) // target=="" means no link
@@ -104,4 +118,23 @@ void get_value(char name[20], char result[100])
 
 void destroy(char name[20])
 {
+	unsigned int hash_value = hash(name);
+	for (int index = hash_head[hash_value], prev = -1; index != -1; index = pool[index].next_with_same_hash)
+	{
+		if (is_same(pool[index].name, name))
+		{
+			if (prev == -1)
+			{
+				hash_head[hash_value] = pool[index].next_with_same_hash;
+			}
+			else
+			{
+				pool[prev].next_with_same_hash = pool[index].next_with_same_hash;
+			}
+			pool[index].next_with_same_hash = free_list_head;
+			free_list_head = index;
+			return;
+		}
+		prev = index;
+	}
 }
