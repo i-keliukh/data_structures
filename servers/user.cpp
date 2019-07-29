@@ -70,26 +70,29 @@ inline void mycpy(register char* dst, register char* src)
     *dst = 0;
 }
 
-inline bool find(int index, char* word)
+inline int find(unsigned int hash_value, char* name, int *previous)
 {
-    for (; index != -1; index = pool[index].next_with_same_hash)
+    for (int index = hash_head[hash_value], prev = -1; index != -1; index = pool[index].next_with_same_hash)
     {
-        if (is_same(pool[index].name, word)) return true;
+        if (is_same(pool[index].name, name))
+        {
+            if (previous) *previous = prev;
+            return index;
+        }
+        prev = index;
     }
-    return false;
+    return -1;
 }
 
 
 void create(char name[20], char value[20])
 {
     unsigned int hash_value = hash(name);
-    for (int index = hash_head[hash_value]; index != -1; index = pool[index].next_with_same_hash)
+    int index = find(hash_value, name, nullptr);
+    if (index != -1)
     {
-        if (is_same(pool[index].name, name))
-        {
-            mycpy(pool[index].value, value);
-            return;
-        }
+        mycpy(pool[index].value, value);
+        return;
     }
 
 	int new_item;
@@ -110,6 +113,8 @@ void create(char name[20], char value[20])
 
 void link(char name[20], char target[20]) // target=="" means no link
 {
+    int source_index = find(hash(name), name, nullptr);
+    pool[source_index].link = find(hash(target), target, nullptr);
 }
 
 void get_value(char name[20], char result[100])
@@ -119,22 +124,22 @@ void get_value(char name[20], char result[100])
 void destroy(char name[20])
 {
 	unsigned int hash_value = hash(name);
-	for (int index = hash_head[hash_value], prev = -1; index != -1; index = pool[index].next_with_same_hash)
+    int index, prev;
+    index = find(hash_value, name, &prev);
+    if (index == -1)
+    {
+        return;
+    }
+	
+	if (prev == -1)
 	{
-		if (is_same(pool[index].name, name))
-		{
-			if (prev == -1)
-			{
-				hash_head[hash_value] = pool[index].next_with_same_hash;
-			}
-			else
-			{
-				pool[prev].next_with_same_hash = pool[index].next_with_same_hash;
-			}
-			pool[index].next_with_same_hash = free_list_head;
-			free_list_head = index;
-			return;
-		}
-		prev = index;
+		hash_head[hash_value] = pool[index].next_with_same_hash;
 	}
+	else
+	{
+		pool[prev].next_with_same_hash = pool[index].next_with_same_hash;
+	}
+	pool[index].next_with_same_hash = free_list_head;
+	free_list_head = index;
+	return;
 }

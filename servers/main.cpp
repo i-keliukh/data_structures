@@ -9,6 +9,7 @@ const int kMaxWords = 100000;
 //////////////////////////////////////////////////////////////////////////////////////////////////
 extern void init();
 void create(char name[20], char value[20]);
+void link(char name[20], char target[20]); // target=="" means no link
 void destroy(char name[20]);
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -40,6 +41,7 @@ namespace {
 
 		inline vector<char> rand_str(int length) {
 			vector<char> result;
+            length--;
 			result.resize(length + 1);
 			result[length--] = 0;
 			while (length >= 0) result[length--] = rand_char();
@@ -72,9 +74,8 @@ namespace {
 			}
 			for (int i = 0; i < rounds; ++i) {
 				add(rnd.rand(words), rnd.rand_str(kWordSize));
-				if (i == 79268)
-					i = i;
 				del(rnd.rand(words));
+                link(rnd.rand(words), rnd.rand(words));
 				if (!check(rnd.rand(words))) {
 					++fail;
 				}
@@ -92,6 +93,13 @@ namespace {
 			::destroy(&dict[index].name[0]);
 			dict[index].present = false;
 		}
+
+        void link(int source, int target)
+        {
+            if (!dict[source].present) return;
+            if (!dict[target].present) return;
+            ::link(&dict[source].name[0], &dict[target].name[0]);
+        }
 
 		bool check(int index) {
 			//bool result = ::check(&dict[index].word[0]);
