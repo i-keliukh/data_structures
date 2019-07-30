@@ -179,7 +179,6 @@ namespace {
             numbers[i].clear();
             numbers_iterator[i] = numbers[i].end();
             numbers_iterator_index[i] = -1;
-            init_iterator(i);
         }
     }
 
