@@ -107,6 +107,7 @@ void create(char name[20], char value[20])
 	}
 	mycpy(pool[new_item].name, name);
 	mycpy(pool[new_item].value, value);
+    pool[new_item].link = -1;
 	pool[new_item].next_with_same_hash = hash_head[hash_value];
 	hash_head[hash_value] = new_item;
 }
@@ -114,11 +115,27 @@ void create(char name[20], char value[20])
 void link(char name[20], char target[20]) // target=="" means no link
 {
     int source_index = find(hash(name), name, nullptr);
-    pool[source_index].link = find(hash(target), target, nullptr);
+    if (target[0])
+    {
+        pool[source_index].link = find(hash(target), target, nullptr);
+    }
+    else
+    {
+        pool[source_index].link = -1;
+    }
 }
 
-void get_value(char name[20], char result[100])
+void get_value(char name[20], char result[96])
 {
+    unsigned int hash_value = hash(name);
+    int index = find(hash_value, name, nullptr);
+    char* p = result;
+    for (int i = 0; i < 5 && index != -1; i++)
+    {
+        mycpy(p, pool[index].value);
+        p = p + 19;
+        index = pool[index].link;
+    }
 }
 
 void destroy(char name[20])
