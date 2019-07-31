@@ -84,8 +84,6 @@ namespace {
 				add(rnd.rand(words));
 				del(rnd.rand(words));
                 link(rnd.rand(words), rnd.rand((UInt64)words + 1) - 1);
-                if (i == 41)
-                    i = i;
 				if (!check(rnd.rand(words))) {
 					++fail;
 				}
@@ -98,9 +96,12 @@ namespace {
             rnd.rand_str(kWordSize, value);
 			::create(dict[index].name, value);
 			strcpy(dict[index].value, value);
-			dict[index].present = true;
-            dict[index].link = -1;
-            dict[index].children.clear();
+            if (!dict[index].present)
+            {
+                dict[index].present = true;
+                dict[index].link = -1;
+                dict[index].children.clear();
+            }
 		}
 
 		void del(int index) {
@@ -154,8 +155,6 @@ namespace {
             }
 
 			bool result = strcmp(actual, expected) == 0;
-            if (!result)
-                int b = 0;
             return result;
 		}
 
