@@ -10,7 +10,7 @@ const int kMaxWords = 100000;
 //////////////////////////////////////////////////////////////////////////////////////////////////
 extern void init();
 void create(char name[20], char value[20]);
-void link(char name[20], char target[20]); // target=="" means no link
+void link(char source[20], char target[20]); // target=="" means no link
 void get_value(char name[20], char result[96]);
 void destroy(char name[20]);
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -189,16 +189,76 @@ namespace {
 	Checker checker;
 }
 
+const int command_length = 10;
+const int name_length = 19;
+const int value_length = 19;
+const int result_length = 5 * value_length;
+
+int test_run()
+{
+    char name[name_length + 1];
+    int number_of_commands;
+    int fail_count = 0;
+    (void)scanf("%d", &number_of_commands);
+    ::init();
+    for (int i = 0; i < number_of_commands; i++)
+    {
+        char command[command_length + 1];
+        (void)scanf("%s", command);
+        switch (towupper(command[0]))
+        {
+            case 'C':
+            {
+                char value[value_length + 1];
+                (void)scanf("%s %s", name, value);
+                ::create(name, value);
+                break;
+            }
+            case 'D':
+            {
+                (void)scanf("%s", name);
+                ::destroy(name);
+                break;
+            }
+            case 'G':
+            {
+                char expected_result[result_length + 1];
+                char actual_result[result_length + 1];
+                (void)scanf("%s %s", name, expected_result);
+                ::get_value(name, actual_result);
+                if (strcmp(expected_result, actual_result) != 0) fail_count++;
+                break;
+            }
+            case 'L':
+            {
+                char source[name_length + 1];
+                char target[name_length + 1];
+                (void)scanf("%s %s", source, target);
+                ::link(source, target);
+                break;
+            }
+        }
+    }
+    return fail_count;
+}
+
 int main()
 {
 	int tests;
 	(void)scanf("%d", &tests);
 
+#if 0
 	for (int test = 0; test < tests; ++test) {
 		int seed, words, rounds;
 		(void)scanf("%d%d%d", &seed, &words, &rounds);
 		printf("#%d %d\n", test + 1, checker.run(seed, words, rounds));
 	}
+#endif 
+
+    for (int test = 0; test < tests; ++test) {
+        printf("#%d %d\n", test + 1, test_run());
+    }
+
 
 	return 0;
 }

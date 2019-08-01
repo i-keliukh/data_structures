@@ -62,7 +62,7 @@ inline int is_same(register char* a, register char* b)
     return *b == *a;
 }
 
-inline void mycpy(register char* dst, register char* src)
+inline char* mycpy(register char* dst, register char* src)
 {
     while (*src != 0)
     {
@@ -71,6 +71,7 @@ inline void mycpy(register char* dst, register char* src)
         dst++;
     }
     *dst = 0;
+    return dst;
 }
 
 inline int find(unsigned int hash_value, char* name, int *previous)
@@ -143,9 +144,9 @@ void remove_from_children_list(int index)
     }
 }
 
-void link(char name[20], char target[20]) // target=="" means no link
+void link(char source[20], char target[20]) // target=="" means no link
 {
-    int source_index = find(hash(name), name, nullptr);
+    int source_index = find(hash(source), source, nullptr);
     remove_from_children_list(source_index);
 
     if (!target[0])
@@ -177,8 +178,7 @@ void get_value(char name[20], char result[96])
     char* p = result;
     for (int i = 0; i < 5 && index != -1; i++)
     {
-        mycpy(p, pool[index].value);
-        p = p + 19;
+        p = mycpy(p, pool[index].value);
         index = pool[index].link;
     }
 }

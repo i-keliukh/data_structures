@@ -1,3 +1,30 @@
+2
+9
+CREATE server0 value0
+CREATE server1 value1
+GET_VALUE server0 value0
+LINK server0 server1
+GET_VALUE server0 value0value1
+GET_VALUE server1 value1
+DESTROY server1
+GET_VALUE server0 value0
+DESTROY server0
+
+10
+CREATE server0 value0
+CREATE server1 value1
+GET_VALUE server0 value0
+GET_VALUE server1 value1
+CREATE server0 value2
+GET_VALUE server0 value2
+GET_VALUE server1 value1
+DESTROY server0
+GET_VALUE server1 value1
+DESTROY server1
+
+
+
+
 10
 42424242 5 10
 49873737 10 100
