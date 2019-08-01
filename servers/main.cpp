@@ -82,7 +82,7 @@ namespace {
 			}
 			for (int i = 0; i < rounds; ++i) {
 				add(rnd.rand(words));
-				del(rnd.rand(words));
+                del(rnd.rand(words));
                 link(rnd.rand(words), rnd.rand((UInt64)words + 1) - 1);
 				if (!check(rnd.rand(words))) {
 					++fail;
@@ -104,22 +104,44 @@ namespace {
             }
 		}
 
+        void remove_from_parents_children(int child)
+        {
+            int parent = dict[child].link;
+            if (parent == -1) return;
+            dict[parent].children.erase(std::remove(dict[parent].children.begin(), dict[parent].children.end(), child), dict[parent].children.end());
+        }
+
 		void del(int index) {
 			::destroy(dict[index].name);
-			dict[index].present = false;
+            if (!dict[index].present) return;
+
+            dict[index].present = false;
+            remove_from_parents_children(index);
+            int parent = dict[index].link;
             for (auto it = dict[index].children.begin(); it != dict[index].children.end(); ++it)
             {
-                dict[*it].link = dict[index].link;
+                dict[*it].link = parent;
+                if (parent != -1)
+                {
+                    dict[parent].children.push_back(*it);
+                }
             }
 		}
 
         void link(int source, int target)
         {
             if (!dict[source].present) return;
-            if (source == target) return;
+            if (target != -1 && !dict[target].present) return;
+            int current = target;
+            while (current != -1)
+            {
+                if (current == source) return;
+                current = dict[current].link;
+            }
+
+            remove_from_parents_children(source);
             if (target != -1)
             {
-                if (!dict[target].present) return;
                 dict[source].link = target;
                 if (std::find(dict[target].children.begin(), dict[target].children.end(), source) == dict[target].children.end())
                 {
@@ -130,11 +152,6 @@ namespace {
             else
             {
                 static char empty[20] = "";
-                int old_target = dict[source].link;
-                if (old_target != -1)
-                {
-                    dict[old_target].children.erase(std::remove(dict[old_target].children.begin(), dict[old_target].children.end(), source), dict[old_target].children.end());
-                }
                 dict[source].link = -1;
                 ::link(dict[source].name, empty);
             }
