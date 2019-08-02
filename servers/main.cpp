@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <vector>
 #include <algorithm>
+#include <sstream>
 using namespace std;
 
 const int kWordSize = 20;
@@ -10,10 +11,21 @@ const int kMaxWords = 100000;
 //////////////////////////////////////////////////////////////////////////////////////////////////
 extern void init();
 void create(char name[20], char value[20]);
-void link(char source[20], char target[20]); // target=="" means no link
+void link(char source[20], char target[20]);
+void unlink(char name[20]);
 void get_value(char name[20], char result[96]);
 void destroy(char name[20]);
 //////////////////////////////////////////////////////////////////////////////////////////////////
+
+std::stringstream output_buffer;
+int count_tests;
+
+std::stringstream& out()
+{
+    count_tests++;
+    return output_buffer;
+}
+
 
 namespace {
 
@@ -21,13 +33,13 @@ namespace {
 
 	struct Rnd {
 		UInt64 seed;
-		static const int kAlpahabetSize = ('f' - 'a') + 1;
+		static const int kAlpahabetSize = ('F' - 'A') + 1;
 		char alpahabet[kAlpahabetSize];
 
 		Rnd()
         {
 			char* p = alpahabet;
-			for (char c = 'a'; c <= 'f'; ++c)* p++ = c;
+			for (char c = 'A'; c <= 'F'; ++c)* p++ = c;
 		}
 
         void init(UInt64 new_seed)
@@ -60,6 +72,9 @@ namespace {
 	{
 	public:
 		int run(int seed, int words, int rounds) {
+            int fail = 0;
+            ::init();
+
             rnd.init(seed);
 
 			for (int i = 0; i < words; ++i) {
@@ -69,9 +84,8 @@ namespace {
                 dict[i].link = -1;
 			}
 
-			const int initRounds = static_cast<int>(words * 0.9);
-			int fail = 0;
-			::init();
+            /*
+            const int initRounds = static_cast<int>(words * 0.9);
 			for (int i = 0; i < initRounds; ++i) {
 				add(rnd.rand(words));
 				add(rnd.rand(words));
@@ -88,13 +102,61 @@ namespace {
 					++fail;
 				}
 			}
+            */
+
+            const int initRounds = words;
+            for (int i = 0; i < initRounds; ++i) {
+                add(i);
+            }
+            for (int j = 0; j < 5; j++)
+            {
+                for (int i = 0; i < 5000; i++)
+                {
+                    link(j*5000+i, 25000 + j);
+                }
+            }
+            for (int i = 0; i < 5000; i++)
+            {
+                if (!check(i*5)) 
+                {
+                    ++fail;
+                }
+            }
+
+            for (int j = 0; j < 5; j++)
+            {
+                del(25000 + j);
+            }
+
+            for (int i = 0; i < 5000; i++)
+            {
+                link(i, 5000);
+                link(5000 + i, 5001 + i);
+            }
+
+            for (int i = 0; i < 10000; i++)
+            {
+                if (!check(i))
+                {
+                    ++fail;
+                }
+            }
+
+            for (int i = 0; i < 500; i++)
+            {
+                del(5000 + i);
+            }
+
 			return fail;
 		}
 	private:
 		void add(int index) {
             char value[kWordSize];
             rnd.rand_str(kWordSize, value);
-			::create(dict[index].name, value);
+
+            out() << "create " << dict[index].name << " " << value << std::endl;
+
+            ::create(dict[index].name, value);
 			strcpy(dict[index].value, value);
             if (!dict[index].present)
             {
@@ -111,8 +173,10 @@ namespace {
             dict[parent].children.erase(std::remove(dict[parent].children.begin(), dict[parent].children.end(), child), dict[parent].children.end());
         }
 
+
 		void del(int index) {
 			::destroy(dict[index].name);
+            out() << "destroy " << dict[index].name << std::endl;
             if (!dict[index].present) return;
 
             dict[index].present = false;
@@ -126,6 +190,7 @@ namespace {
                     dict[parent].children.push_back(*it);
                 }
             }
+
 		}
 
         void link(int source, int target)
@@ -140,27 +205,31 @@ namespace {
             }
 
             remove_from_parents_children(source);
-            if (target != -1)
+            if (target == -1)
             {
-                dict[source].link = target;
-                if (std::find(dict[target].children.begin(), dict[target].children.end(), source) == dict[target].children.end())
-                {
-                    dict[target].children.push_back(source);
-                }
-                ::link(dict[source].name, dict[target].name);
+                out() << "unlink " << dict[source].name << std::endl;
+                dict[source].link = -1;
+                ::unlink(dict[source].name);
+                return;
             }
             else
             {
-                static char empty[20] = "";
-                dict[source].link = -1;
-                ::link(dict[source].name, empty);
+                out() << "link " << dict[source].name << " " << dict[target].name << std::endl;
             }
+
+            dict[source].link = target;
+            if (std::find(dict[target].children.begin(), dict[target].children.end(), source) == dict[target].children.end())
+            {
+                dict[target].children.push_back(source);
+            }
+            ::link(dict[source].name, dict[target].name);
         }
 
 		bool check(int index) {
             if (!dict[index].present) return true;
 
             char actual[96], expected[96];
+            out() << "get_value " << dict[index].name << " ";
             ::get_value(dict[index].name, actual);
 
             char* p = expected;
@@ -170,8 +239,8 @@ namespace {
                 p = p + 19;
                 index = dict[index].link;
             }
-
-			bool result = strcmp(actual, expected) == 0;
+            out() << expected << std::endl;
+            bool result = strcmp(actual, expected) == 0;
             return result;
 		}
 
@@ -237,6 +306,12 @@ int test_run()
                 ::link(source, target);
                 break;
             }
+            case 'U':
+            {
+                (void)scanf("%s", name);
+                ::unlink(name);
+                break;
+            }
         }
     }
     return fail_count;
@@ -247,12 +322,20 @@ int main()
 	int tests;
 	(void)scanf("%d", &tests);
 
-#if 0
+#if 1
+    FILE *output_file = fopen("input_random.txt", "w");
+    fprintf(output_file, "%d\n", tests);
 	for (int test = 0; test < tests; ++test) {
 		int seed, words, rounds;
+        output_buffer.clear();
+        count_tests = 0;
 		(void)scanf("%d%d%d", &seed, &words, &rounds);
 		printf("#%d %d\n", test + 1, checker.run(seed, words, rounds));
-	}
+        fprintf(output_file, "%d\n", count_tests);
+        fprintf(output_file, "%s\n", output_buffer.str().c_str());
+    }
+    fclose(output_file);
+    return 0;
 #endif 
 
     for (int test = 0; test < tests; ++test) {

@@ -5,6 +5,21 @@
 4. Links can be updated
 5. Server are created and deleted dynamically
 5. Upon delete, all servers that link to current server relink to its parent (if any)
+
+
+
+
+Test:
+
+x 1. Maximum children
+2. Hashing: same prefix, different suffix
+3. Hashing: same suffix, different prefix
+4. Long chain
+5. Maximum number of nodes
+x 6. Maximum number of nodes moved from on server to another:
+    1,2,3,...,5000 -> 5001 -> 5002 -> 5003 -> 5004, then 
+    delete 5001, delete 5002, delete 5003
+
 */
 
 
@@ -144,16 +159,10 @@ void remove_from_children_list(int index)
     }
 }
 
-void link(char source[20], char target[20]) // target=="" means no link
+void link(char source[20], char target[20])
 {
     int source_index = find(hash(source), source, nullptr);
     remove_from_children_list(source_index);
-
-    if (!target[0])
-    {
-        pool[source_index].link = -1;
-        return;
-    }
 
     // add to the list of linking to the new server
     int target_index = find(hash(target), target, nullptr);
@@ -169,6 +178,14 @@ void link(char source[20], char target[20]) // target=="" means no link
     pool[source_index].prev_with_same_link = -1;
 
     pool[target_index].first_incoming_link = source_index;
+}
+
+void unlink(char name[20])
+{
+    int index = find(hash(name), name, nullptr);
+    remove_from_children_list(index);
+
+    pool[index].link = -1;
 }
 
 void get_value(char name[20], char result[96])
