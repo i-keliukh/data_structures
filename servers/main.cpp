@@ -105,9 +105,11 @@ namespace {
             */
 
             const int initRounds = words;
+            /*
             for (int i = 0; i < initRounds; ++i) {
                 add(i);
             }
+
             for (int j = 0; j < 5; j++)
             {
                 for (int i = 0; i < 5000; i++)
@@ -145,6 +147,15 @@ namespace {
             for (int i = 0; i < 500; i++)
             {
                 del(5000 + i);
+            }
+            */
+
+            for (int i = 0; i < 26*19; ++i) {
+                strcpy(dict[i].name, "bang!bang!bang!bang");
+                dict[i].name[i / 26] = 'A' + i % 26;
+            }
+            for (int i = 0; i < initRounds; ++i) {
+                add(i);
             }
 
 			return fail;
