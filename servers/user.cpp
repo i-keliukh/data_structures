@@ -1,57 +1,5 @@
-/*
-1. Server identified by unique name, keeps value; second create overwrites the value
-2. There is a link to upstream server
-3. On getting value, server returns its own value and all values from upstream server
-4. Links can be updated
-5. Server are created and deleted dynamically
-5. Upon delete, all servers that link to current server relink to its parent (if any)
-
-
-
-
-Test:
-
-x 1. Maximum children
-2. Hashing: same prefix, different suffix
-3. Hashing: same suffix, different prefix
-4. Long chain
-5. Maximum number of nodes
-x 6. Maximum number of nodes moved from on server to another:
-    1,2,3,...,5000 -> 5001 -> 5002 -> 5003 -> 5004, then 
-    delete 5001, delete 5002, delete 5003
-
-*/
-
-
 #define POOL_SIZE       100000
 #define HASHMAP_SIZE    500009
-
-
-struct Server
-{
-    char name[20];
-    char value[20];
-    int link;
-    int next_with_same_hash;
-    int next_with_same_link;
-    int prev_with_same_link;
-    int first_incoming_link;
-};
-
-int hash_head[HASHMAP_SIZE];
-int size;
-int free_list_head;
-Server pool[POOL_SIZE];
-
-void init()
-{
-    size = 0;
-	free_list_head = -1;
-    for (int i = 0; i < HASHMAP_SIZE; i++)
-    {
-        hash_head[i] = -1;
-    }
-}
 
 unsigned long hash(register const char* str)
 {
@@ -67,17 +15,17 @@ unsigned long hash(register const char* str)
 }
 
 
-inline int is_same(register char* a, register char* b)
+inline int mystrcmp(register char* a, register char* b)
 {
     while (*a != 0 && *b == *a)
     {
         a++;
         b++;
     }
-    return *b == *a;
+    return *b != *a;
 }
 
-inline char* mycpy(register char* dst, register char* src)
+inline char* mystrcpy(register char* dst, register char* src)
 {
     while (*src != 0)
     {
@@ -89,163 +37,243 @@ inline char* mycpy(register char* dst, register char* src)
     return dst;
 }
 
-inline int find(unsigned int hash_value, char* name, int *previous)
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct ServerEntry
 {
-    for (int index = hash_head[hash_value], prev = -1; index != -1; index = pool[index].next_with_same_hash)
+    char value[20];
+    ServerEntry* link;
+    ServerEntry* next_with_same_link;
+    ServerEntry* prev_with_same_link;
+    ServerEntry* first_incoming_link;
+};
+
+struct HashEntry
+{
+    char name[20];
+    HashEntry* next;
+    ServerEntry data;
+};
+
+
+
+int allocator_size;
+HashEntry* allocator_free_list_head;
+HashEntry allocator_pool[POOL_SIZE];
+
+void allocator_init()
+{
+    allocator_size = 0;
+    allocator_free_list_head = nullptr;
+}
+
+HashEntry* allocator_alloc()
+{
+    if (allocator_size < POOL_SIZE)
     {
-        if (is_same(pool[index].name, name))
+        return &allocator_pool[allocator_size++];
+    }
+    HashEntry* result = allocator_free_list_head;
+    allocator_free_list_head = allocator_free_list_head->next;
+    return result;
+}
+
+void allocator_free(HashEntry* hash_entry)
+{
+    hash_entry->next = allocator_free_list_head;
+    allocator_free_list_head = hash_entry;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+HashEntry* hash_head[HASHMAP_SIZE];
+
+inline HashEntry* hash_find(unsigned int index_in_hash_heads, char* name, HashEntry** previous)
+{
+    for (HashEntry *current = hash_head[index_in_hash_heads], *prev = nullptr; current != nullptr; current = current->next)
+    {
+        if (mystrcmp(current->name, name) == 0)
         {
             if (previous) *previous = prev;
-            return index;
+            return current;
         }
-        prev = index;
+        prev = current;
     }
-    return -1;
+    return nullptr;
 }
 
-
-void create(char name[20], char value[20])
+void hash_init()
 {
-    unsigned int hash_value = hash(name);
-    int index = find(hash_value, name, nullptr);
-    if (index != -1)
+    allocator_init();
+    for (int i = 0; i < HASHMAP_SIZE; i++)
     {
-        mycpy(pool[index].value, value);
-        return;
+        hash_head[i] = nullptr;
     }
-
-	int new_item;
-	if (size < POOL_SIZE)
-	{
-		new_item = size++;
-	}
-	else
-	{
-		new_item = free_list_head;
-		free_list_head = pool[free_list_head].next_with_same_hash;
-	}
-	mycpy(pool[new_item].name, name);
-	mycpy(pool[new_item].value, value);
-    pool[new_item].link = -1;
-	pool[new_item].next_with_same_hash = hash_head[hash_value];
-    pool[new_item].next_with_same_link = -1;
-    pool[new_item].prev_with_same_link = -1;
-    pool[new_item].first_incoming_link = -1;
-	hash_head[hash_value] = new_item;
 }
 
-void remove_from_children_list(int index)
+ServerEntry* hash_get_or_create(char* name, bool* created)
 {
-    int current_target = pool[index].link;
-    if (current_target == -1)
-    {
-        return;
-    }
+    int index_in_hash_heads = hash(name);
+    HashEntry* hash_entry = hash_find(index_in_hash_heads, name, nullptr);
 
-    int prev = pool[index].prev_with_same_link;
-    int next = pool[index].next_with_same_link;
-    if (prev == -1)
+    if (!hash_entry)
     {
-        pool[current_target].first_incoming_link = next;
+        hash_entry = allocator_alloc();
+        mystrcpy(hash_entry->name, name);
+        hash_entry->next = hash_head[index_in_hash_heads];
+        hash_head[index_in_hash_heads] = hash_entry;
+        *created = true;
     }
     else
     {
-        pool[prev].next_with_same_link = next;
+        *created = false;
     }
+    return &hash_entry->data;
+}
 
-    if (next != -1)
+ServerEntry* hash_get(char* name)
+{
+    int index_in_hash_heads = hash(name);
+    HashEntry* hash_entry = hash_find(index_in_hash_heads, name, nullptr);
+    if (!hash_entry)
     {
-        pool[next].prev_with_same_link = prev;
+        return nullptr;
+    }
+    else
+    {
+        return &hash_entry->data;
     }
 }
 
-void link(char source[20], char target[20])
+void hash_remove(char* name)
 {
-    int source_index = find(hash(source), source, nullptr);
-    remove_from_children_list(source_index);
+    int index_in_hash_heads = hash(name);
+    HashEntry* previous_entry;
+    HashEntry* hash_entry = hash_find(index_in_hash_heads, name, &previous_entry);
 
-    // add to the list of linking to the new server
-    int target_index = find(hash(target), target, nullptr);
-    pool[source_index].link = target_index;
+    if (!hash_entry) return;
 
-    int first_incoming_link = pool[target_index].first_incoming_link;
-    if (first_incoming_link != -1)
+    if (previous_entry)
     {
-        pool[first_incoming_link].prev_with_same_link = source_index;
+        previous_entry->next = hash_entry->next;
     }
-
-    pool[source_index].next_with_same_link = first_incoming_link;
-    pool[source_index].prev_with_same_link = -1;
-
-    pool[target_index].first_incoming_link = source_index;
+    else
+    {
+        hash_head[index_in_hash_heads] = hash_entry->next;
+    }
+    allocator_free(hash_entry);
 }
 
-void unlink(char name[20])
-{
-    int index = find(hash(name), name, nullptr);
-    remove_from_children_list(index);
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    pool[index].link = -1;
+void init()
+{
+    hash_init();
 }
 
-void get_value(char name[20], char result[96])
+void create(char name[20], char value[20])
 {
-    unsigned int hash_value = hash(name);
-    int index = find(hash_value, name, nullptr);
-    char* p = result;
-    for (int i = 0; i < 5 && index != -1; i++)
+    bool created;
+    ServerEntry* server = hash_get_or_create(name, &created);
+
+    mystrcpy(server->value, value);
+    if (created)
     {
-        p = mycpy(p, pool[index].value);
-        index = pool[index].link;
+        server->next_with_same_link = nullptr;
+        server->prev_with_same_link = nullptr;
+        server->link = nullptr;
+        server->first_incoming_link = nullptr;
     }
+}
+
+void remove_from_backlist(ServerEntry* server)
+{
+    if (!server->link) return;
+
+    ServerEntry* next = server->next_with_same_link;
+    ServerEntry* prev = server->prev_with_same_link;
+
+    if (prev)
+    {
+        prev->next_with_same_link = next;
+    }
+    else
+    {
+        server->link->first_incoming_link = next;
+    }
+
+    if (next)
+    {
+        next->prev_with_same_link = prev;
+    }
+
 }
 
 void destroy(char name[20])
 {
-	unsigned int hash_value = hash(name);
-    int index, prev;
-    index = find(hash_value, name, &prev);
-    if (index == -1)
-    {
-        return;
-    }
-	
-    // remove itself from the list of children in linked server
-    remove_from_children_list(index);
+    ServerEntry* server = hash_get(name);
+    if (!server) return;
 
-    // rewrite link in all children
-    int last_child = -1;
-    for (int current = pool[index].first_incoming_link; current != -1; current = pool[current].next_with_same_link)
+    remove_from_backlist(server);
+
+    ServerEntry* last_child = nullptr;
+    for (ServerEntry* current = server->first_incoming_link; current != nullptr; current = current->next_with_same_link)
     {
-        pool[current].link = pool[index].link;
+        current->link = server->link;
         last_child = current;
     }
 
-    // move the list of children to the list of children of link
-    int link = pool[index].link;
-    if (link != -1)
+    if (server->link)
     {
-        int next = pool[link].first_incoming_link;
-        if (pool[index].first_incoming_link != -1)
+        ServerEntry* first_current_link = server->link->first_incoming_link;
+        if (server->first_incoming_link)
         {
-            pool[link].first_incoming_link = pool[index].first_incoming_link;
-            if (next != -1)
+            server->link->first_incoming_link = server->first_incoming_link;
+            if (first_current_link)
             {
-                pool[last_child].next_with_same_link = next;
-                pool[next].prev_with_same_link = last_child;
+                last_child->next_with_same_link = first_current_link;
+                first_current_link->prev_with_same_link = last_child;
             }
         }
     }
 
-	if (prev == -1)
-	{
-		hash_head[hash_value] = pool[index].next_with_same_hash;
-	}
-	else
-	{
-		pool[prev].next_with_same_hash = pool[index].next_with_same_hash;
-	}
-	pool[index].next_with_same_hash = free_list_head;
-	free_list_head = index;
-	return;
+    hash_remove(name);
+}
+
+void link(char source[20], char target[20])
+{
+    ServerEntry* source_server = hash_get(source);
+    ServerEntry* target_server = hash_get(target);
+
+    remove_from_backlist(source_server);
+    source_server->link = target_server;
+
+    if (target_server->first_incoming_link)
+    {
+        target_server->first_incoming_link->prev_with_same_link = source_server;
+    }
+
+    source_server->prev_with_same_link = nullptr;
+    source_server->next_with_same_link = target_server->first_incoming_link;
+    target_server->first_incoming_link = source_server;
+}
+
+void unlink(char name[20])
+{
+    ServerEntry* source_server = hash_get(name);
+
+    remove_from_backlist(source_server);
+    source_server->link = nullptr;
+}
+
+void get_value(char name[20], char result[96])
+{
+    ServerEntry* server = hash_get(name);
+    char* p = result;
+
+    for (int i = 0; i < 5 && server != nullptr; i++)
+    {
+        p = mystrcpy(p, server->value);
+        server = server->link;
+    }
 }
